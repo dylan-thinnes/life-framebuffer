@@ -95,7 +95,11 @@ int main (int argc, char **argv) {
     for (int yy = 0; yy < 256; yy++) {
       int x = xx + 100;
       int y = yy + 0;
-      mem[y][x] = ((xx * 10) % 256) << 16 | ((yy * 10) % 256) << 8 | ((xx * yy) % 256);
+      int rr = (xx * 10) % 256;
+      int gg = (yy * 10) % 256;
+      int bb = 0x80;
+      //int bb = (xx * yy) % 256;
+      mem[y][x] = rr << 16 | gg << 8 | bb;
     }
   }
   */
