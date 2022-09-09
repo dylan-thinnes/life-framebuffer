@@ -109,22 +109,22 @@ int main (int argc, char **argv) {
   uint64_t elapsed = 0;
   uint64_t interval = 100000000L;
   while (1) {
-    // Sleep 10ms
-    struct timespec req, res;
-    req.tv_sec = 0;
-    req.tv_nsec = 10000000L;
-    res.tv_sec = 0;
-    res.tv_nsec = 0L;
-    nanosleep(&req, &res);
-    elapsed += req.tv_nsec - res.tv_nsec;
+    struct timespec start_ts, end_ts;
+    timespec_get(&start_ts, TIME_UTC);
+    step_state();
+    timespec_get(&end_ts, TIME_UTC);
+    double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+    double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+    double diff = end - start;
+    printf ("Calc:  %3.f ms\n", diff);
 
-    if (elapsed > interval) {
-      //printf("elapsed %d\n", elapsed);
-      elapsed -= interval;
-      //printf("redraw\n");
-      step_state();
-      redraw();
-    }
+    timespec_get(&start_ts, TIME_UTC);
+    redraw();
+    timespec_get(&end_ts, TIME_UTC);
+    start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+    end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+    diff = end - start;
+    printf ("Write: %3.f ms\n", diff);
   }
   redraw();
 
