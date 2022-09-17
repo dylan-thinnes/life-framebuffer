@@ -13,7 +13,7 @@ static const int multi_channel = 0;
 static const int channel_count = multi_channel ? 3 : 1;
 
 static int active_buffer = 0;
-static int buffer[2][3][800][600];
+static uint8_t buffer[2][3][800][600];
 
 static int (*mem)[800];
 
@@ -31,7 +31,7 @@ static inline void step_state () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
       for (int channel = 0; channel < channel_count; channel++) {
-        int neighbours = 0;
+        uint8_t neighbours = 0;
         for (int dx = -1; dx <= 1; dx++) {
           for (int dy = -1; dy <= 1; dy++) {
             if (dx == 0 && dy == 0) continue;
