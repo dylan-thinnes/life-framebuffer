@@ -7,18 +7,19 @@
 #include <stdint.h>
 #include <time.h>
 
-int active_buffer = 0;
-int buffer_width = 800;
-int buffer_height = 600;
-int buffer[2][3][800][600];
-int multi_channel = 0;
+static const int buffer_width = 800;
+static const int buffer_height = 600;
+static const int multi_channel = 0;
+static const int channel_count = multi_channel ? 3 : 1;
 
-int (*mem)[800];
+static int active_buffer = 0;
+static int buffer[2][3][800][600];
 
-void randomize () {
+static int (*mem)[800];
+
+static inline void randomize () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
-      int channel_count = multi_channel ? 3 : 1;
       for (int channel = 0; channel < channel_count; channel++) {
         buffer[active_buffer][channel][xx][yy] = rand() % 2;
       }
@@ -26,10 +27,9 @@ void randomize () {
   }
 }
 
-void step_state () {
+static inline void step_state () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
-      int channel_count = multi_channel ? 3 : 1;
       for (int channel = 0; channel < channel_count; channel++) {
         int neighbours = 0;
         for (int dx = -1; dx <= 1; dx++) {
@@ -48,7 +48,7 @@ void step_state () {
   active_buffer = !active_buffer;
 }
 
-void redraw () {
+static inline void redraw () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
       if (multi_channel) {
@@ -65,7 +65,7 @@ void redraw () {
   }
 }
 
-void init_from_fb () {
+static inline void init_from_fb () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
       if (multi_channel) {
@@ -106,27 +106,18 @@ int main (int argc, char **argv) {
 
   randomize();
 
-  uint64_t elapsed = 0;
-  uint64_t interval = 100000000L;
-  while (1) {
-    struct timespec start_ts, end_ts;
-    timespec_get(&start_ts, TIME_UTC);
+  struct timespec start_ts, end_ts;
+  timespec_get(&start_ts, TIME_UTC);
+  for (int ii = 0; ii < 1000; ii++) {
     step_state();
-    timespec_get(&end_ts, TIME_UTC);
-    double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-    double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-    double diff = end - start;
-    printf ("Calc:  %3.f ms\n", diff);
-
-    timespec_get(&start_ts, TIME_UTC);
     redraw();
-    timespec_get(&end_ts, TIME_UTC);
-    start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-    end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-    diff = end - start;
-    printf ("Write: %3.f ms\n", diff);
   }
-  redraw();
+
+  timespec_get(&end_ts, TIME_UTC);
+  double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+  double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+  double diff = end - start;
+  printf ("Elapsed: %f ms\n", diff);
 
   munmap(mem, 800 * 600 * 4);
 }
