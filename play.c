@@ -106,18 +106,27 @@ int main (int argc, char **argv) {
 
   randomize();
 
-  struct timespec start_ts, end_ts;
-  timespec_get(&start_ts, TIME_UTC);
-  for (int ii = 0; ii < 1000; ii++) {
+  uint64_t elapsed = 0;
+  uint64_t interval = 100000000L;
+  while (1) {
+    struct timespec start_ts, end_ts;
+    timespec_get(&start_ts, TIME_UTC);
     step_state();
-    redraw();
-  }
+    timespec_get(&end_ts, TIME_UTC);
+    double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+    double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+    double diff = end - start;
+    printf ("Calc:  %3.f ms\n", diff);
 
-  timespec_get(&end_ts, TIME_UTC);
-  double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-  double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-  double diff = end - start;
-  printf ("Elapsed: %f ms\n", diff);
+    timespec_get(&start_ts, TIME_UTC);
+    redraw();
+    timespec_get(&end_ts, TIME_UTC);
+    start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+    end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+    diff = end - start;
+    printf ("Write: %3.f ms\n", diff);
+  }
+  redraw();
 
   munmap(mem, 800 * 600 * 4);
 }
