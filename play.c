@@ -9,7 +9,7 @@
 
 static const int buffer_width = 800;
 static const int buffer_height = 600;
-static const int multi_channel = 1;
+static const int multi_channel = 0;
 static const int channel_count = multi_channel ? 3 : 1;
 
 static int active_buffer = 0;
@@ -28,9 +28,9 @@ static inline void randomize () {
 }
 
 static inline void step_state () {
-  for (int xx = 0; xx < buffer_width; xx++) {
-    for (int yy = 0; yy < buffer_height; yy++) {
-      for (int channel = 0; channel < channel_count; channel++) {
+  for (int channel = 0; channel < channel_count; channel++) {
+    for (int xx = 0; xx < buffer_width; xx++) {
+      for (int yy = 0; yy < buffer_height; yy++) {
         uint8_t neighbours = 0;
         for (int dx = -1; dx <= 1; dx++) {
           for (int dy = -1; dy <= 1; dy++) {
