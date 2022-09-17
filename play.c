@@ -9,13 +9,13 @@
 
 static const int buffer_width = 800;
 static const int buffer_height = 600;
-static const int multi_channel = 0;
+static const int multi_channel = 1;
 static const int channel_count = multi_channel ? 3 : 1;
 
 static int active_buffer = 0;
 static uint8_t buffer[2][3][800][600];
 
-static int (*mem)[800];
+static uint16_t (*mem)[800];
 
 static inline void randomize () {
   for (int xx = 0; xx < buffer_width; xx++) {
@@ -52,14 +52,12 @@ static inline void redraw () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
       if (multi_channel) {
-        for (int channel = 0; channel < 3; channel++) {
-          mem[yy][xx] =
-            (buffer[active_buffer][0][xx][yy] * 0x00ff0000) |
-            (buffer[active_buffer][1][xx][yy] * 0x0000ff00) |
-            (buffer[active_buffer][2][xx][yy] * 0x000000ff);
-        }
+        mem[yy][xx] =
+          (buffer[active_buffer][0][xx][yy] ? 0xF800 : 0x0000) |
+          (buffer[active_buffer][1][xx][yy] ? 0x07E0 : 0x0000) |
+          (buffer[active_buffer][2][xx][yy] ? 0x001F : 0x0000);
       } else {
-        mem[yy][xx] = buffer[active_buffer][0][xx][yy] ? 0x00ffffff : 0x00000000;
+        mem[yy][xx] = buffer[active_buffer][0][xx][yy] ? 0xffff : 0x0000;
       }
     }
   }
@@ -68,20 +66,16 @@ static inline void redraw () {
 static inline void init_from_fb () {
   for (int xx = 0; xx < buffer_width; xx++) {
     for (int yy = 0; yy < buffer_height; yy++) {
+      uint16_t val = mem[yy][xx];
+      uint16_t r = (val >> 11) & 0x1f;
+      uint16_t g = (val >>  5) & 0x3f;
+      uint16_t b = (val >>  0) & 0x1f;
       if (multi_channel) {
-        int val = mem[yy][xx];
-        int r = (val >> 16) & 0xff;
-        int g = (val >>  8) & 0xff;
-        int b = (val >>  0) & 0xff;
         buffer[active_buffer][0][xx][yy] = r > 16;
-        buffer[active_buffer][1][xx][yy] = g > 16;
+        buffer[active_buffer][1][xx][yy] = g > 32;
         buffer[active_buffer][2][xx][yy] = b > 16;
       } else {
-        int val = mem[yy][xx];
-        int r = (val >> 16) & 0xff;
-        int g = (val >>  8) & 0xff;
-        int b = (val >>  0) & 0xff;
-        buffer[active_buffer][0][xx][yy] = r > 16 || g > 16 || b > 16;
+        buffer[active_buffer][0][xx][yy] = r > 2 || g > 2 || b > 2;
       }
     }
   }
@@ -89,7 +83,7 @@ static inline void init_from_fb () {
 
 int main (int argc, char **argv) {
   int fd = open("/dev/fb0", O_RDWR);
-  mem = (int (*)[800]) mmap(NULL, 800 * 600 * 4, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+  mem = (uint16_t (*)[800]) mmap(NULL, 800 * 600 * 2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
   /*
   for (int xx = 0; xx < 256; xx++) {
     for (int yy = 0; yy < 256; yy++) {
@@ -104,7 +98,8 @@ int main (int argc, char **argv) {
   }
   */
 
-  randomize();
+  init_from_fb();
+  //randomize();
 
   uint64_t elapsed = 0;
   uint64_t interval = 100000000L;
@@ -116,7 +111,7 @@ int main (int argc, char **argv) {
     double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
     double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
     double diff = end - start;
-    printf ("Calc:  %3.f ms\n", diff);
+    //printf ("Calc:  %3.f ms\n", diff);
 
     timespec_get(&start_ts, TIME_UTC);
     redraw();
@@ -124,9 +119,9 @@ int main (int argc, char **argv) {
     start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
     end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
     diff = end - start;
-    printf ("Write: %3.f ms\n", diff);
+    //printf ("Write: %3.f ms\n", diff);
   }
   redraw();
 
-  munmap(mem, 800 * 600 * 4);
+  munmap(mem, 800 * 600 * 2);
 }
