@@ -46,26 +46,26 @@ void step_state () {
 
 void step_conv () {
   for (int yy = 0; yy < HEIGHT; yy++) {
-    field[!active_field][yy][0] =
+    field[!active_field][0][yy] =
       field[active_field][yy][WIDTH - 1] + field[active_field][yy][0] + field[active_field][yy][1];
     for (int xx = 1; xx < WIDTH - 1; xx++) {
-      field[!active_field][yy][xx] =
+      field[!active_field][xx][yy] =
         field[active_field][yy][xx - 1] + field[active_field][yy][xx] + field[active_field][yy][xx + 1];
     }
-    field[!active_field][yy][WIDTH - 1] =
+    field[!active_field][WIDTH - 1][yy] =
       field[active_field][yy][WIDTH - 2] + field[active_field][yy][WIDTH - 1] + field[active_field][yy][0];
   }
   for (int xx = 0; xx < WIDTH; xx++) {
     int neighbours =
-      field[!active_field][HEIGHT - 1][xx] + field[!active_field][0][xx] + field[!active_field][1][xx];
+      field[!active_field][xx][HEIGHT - 1] + field[!active_field][xx][0] + field[!active_field][xx][1];
     field[active_field][0][xx] = neighbours == 3 || neighbours == 4 && field[active_field][0][xx];
     for (int yy = 1; yy < HEIGHT - 1; yy++) {
       neighbours =
-        field[!active_field][yy - 1][xx] + field[!active_field][yy][xx] + field[!active_field][yy + 1][xx];
+        field[!active_field][xx][yy - 1] + field[!active_field][xx][yy] + field[!active_field][xx][yy + 1];
       field[active_field][yy][xx] = neighbours == 3 || neighbours == 4 && field[active_field][yy][xx];
     }
     neighbours =
-      field[!active_field][HEIGHT - 2][xx] + field[!active_field][HEIGHT - 1][xx] + field[!active_field][0][xx];
+      field[!active_field][xx][HEIGHT - 2] + field[!active_field][xx][HEIGHT - 1] + field[!active_field][xx][0];
     field[active_field][HEIGHT - 1][xx] = neighbours == 3 || neighbours == 4 && field[active_field][HEIGHT - 1][xx];
   }
 }
