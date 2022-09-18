@@ -76,7 +76,7 @@ int main (int argc, char** argv) {
   field[active_field][3][1] = 1;
   field[active_field][3][2] = 1;
   field[active_field][3][3] = 1;
-  for (int ii = 0; ii < 1000; ii++) {
+  for (int ii = 0; ii < 100; ii++) {
     step_conv();
   }
 }
