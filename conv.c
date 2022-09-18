@@ -3,17 +3,30 @@
 #include <stdint.h>
 #include <arm_neon.h>
 
+#ifdef CONVOLVE
 #define HEIGHT 1000
 #define WIDTH 1000
 static int active_field = 0;
 static uint8_t field[2][HEIGHT][WIDTH];
+#endif
 
+#ifdef NEON
 #define NEON_HEIGHT 1000
 #define NEON_WIDTH 62
 #define NEON_VECTOR_SIZE 16
+static int active_field = 0;
 static uint8x16_t neon_field[2][NEON_HEIGHT][NEON_WIDTH];
+#endif
 
-void debug (int field_idx) {
+#ifdef BASIC
+#define HEIGHT 1000
+#define WIDTH 1000
+static int active_field = 0;
+static uint8_t field[2][HEIGHT][WIDTH];
+#endif
+
+#ifdef BASIC
+static inline void debug (int field_idx) {
   for (int yy = 0; yy < HEIGHT; yy++) {
     for (int xx = 0; xx < WIDTH; xx++) {
       printf("%d", field[field_idx][yy][xx]);
@@ -21,8 +34,21 @@ void debug (int field_idx) {
     printf("\n");
   }
 }
+#endif
 
-void debug_neon (int field_idx) {
+#ifdef CONVOLVE
+static inline void debug (int field_idx) {
+  for (int yy = 0; yy < HEIGHT; yy++) {
+    for (int xx = 0; xx < WIDTH; xx++) {
+      printf("%d", field[field_idx][yy][xx]);
+    }
+    printf("\n");
+  }
+}
+#endif
+
+#ifdef NEON
+static inline void debug_neon (int field_idx) {
   for (int yy = 0; yy < NEON_HEIGHT; yy++) {
     for (int xx = 0; xx < NEON_WIDTH; xx++) {
       for (int xxx = 0; xxx < NEON_VECTOR_SIZE; xxx++) {
@@ -32,8 +58,10 @@ void debug_neon (int field_idx) {
     printf("\n");
   }
 }
+#endif
 
-void step_state () {
+#ifdef BASIC
+static inline void step_basic () {
   for (int xx = 0; xx < WIDTH; xx++) {
     for (int yy = 0; yy < HEIGHT; yy++) {
       int neighbours = 0;
@@ -51,8 +79,10 @@ void step_state () {
   }
   active_field = !active_field;
 }
+#endif
 
-void step_conv () {
+#ifdef CONVOLVE
+static inline void step_conv () {
   for (int yy = 0; yy < HEIGHT; yy++) {
     field[!active_field][0][yy] =
       field[active_field][yy][WIDTH - 1] + field[active_field][yy][0] + field[active_field][yy][1];
@@ -77,8 +107,10 @@ void step_conv () {
     field[active_field][HEIGHT - 1][xx] = neighbours == 3 || neighbours == 4 && field[active_field][HEIGHT - 1][xx];
   }
 }
+#endif
 
-void step_neon () {
+#ifdef NEON
+static inline void step_neon () {
   for (int yy = 0; yy < NEON_HEIGHT; yy++) {
     uint8x16_t prev = neon_field[active_field][yy][NEON_WIDTH - 1];
     uint8x16_t curr = neon_field[active_field][yy][0];
@@ -126,30 +158,51 @@ void step_neon () {
     }
   }
 }
+#endif
 
+/*
 void print_u8x16 (uint8x16_t v) {
   for (int ii = 0; ii < 16; ii++) {
     printf("%2x ", v[ii]);
   }
 }
+*/
 
 int main (int argc, char** argv) {
-  //field[active_field][1][2] = 1;
-  //field[active_field][2][3] = 1;
-  //field[active_field][3][1] = 1;
-  //field[active_field][3][2] = 1;
-  //field[active_field][3][3] = 1;
-  //for (int ii = 0; ii < 100; ii++) {
-  //  step_conv();
-  //}
+  #ifdef CONVOLVE
+  field[active_field][1][2] = 1;
+  field[active_field][2][3] = 1;
+  field[active_field][3][1] = 1;
+  field[active_field][3][2] = 1;
+  field[active_field][3][3] = 1;
+  #endif
 
+  #ifdef NEON
   neon_field[active_field][1][0][2] = 1;
   neon_field[active_field][2][0][3] = 1;
   neon_field[active_field][3][0][1] = 1;
   neon_field[active_field][3][0][2] = 1;
   neon_field[active_field][3][0][3] = 1;
+  #endif
+
+  #ifdef BASIC
+  field[active_field][1][2] = 1;
+  field[active_field][2][3] = 1;
+  field[active_field][3][1] = 1;
+  field[active_field][3][2] = 1;
+  field[active_field][3][3] = 1;
+  #endif
+
   for (int ii = 0; ii < 100; ii++) {
+    #ifdef CONVOLVE
+    step_conv();
+    #endif
+    #ifdef NEON
     step_neon();
+    #endif
+    #ifdef BASIC
+    step_basic();
+    #endif
   }
 
   /*
