@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 FLAGS="-Ofast -march=native -mfpu=neon"
 echo "Chosen targets: $@"
+echo "Flags: $FLAGS"
 echo "Running 100 iteratiosn of 1000x1000 fields"
 for TARGET in "$@"; do
   echo Compiling $TARGET ...

@@ -11,16 +11,16 @@ static uint8_t field[2][HEIGHT][WIDTH];
 #endif
 
 #ifdef NEON
-#define NEON_HEIGHT 1000
-#define NEON_WIDTH 62
+#define NEON_HEIGHT 600
+#define NEON_WIDTH 50
 #define NEON_VECTOR_SIZE 16
 static int active_field = 0;
 static uint8x16_t neon_field[2][NEON_HEIGHT][NEON_WIDTH];
 #endif
 
 #ifdef BASIC
-#define HEIGHT 1000
-#define WIDTH 1000
+#define HEIGHT 600
+#define WIDTH 800
 static int active_field = 0;
 static uint8_t field[2][HEIGHT][WIDTH];
 #endif
