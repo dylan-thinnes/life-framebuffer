@@ -4,8 +4,8 @@
 #include <arm_neon.h>
 
 #ifdef CONVOLVE
-#define HEIGHT 1000
-#define WIDTH 1000
+#define HEIGHT 693
+#define WIDTH 693
 static int active_field = 0;
 static uint8_t field[2][HEIGHT][WIDTH];
 #endif
