@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <arm_neon.h>
+#include <unistd.h>
 
 #ifdef CONVOLVE
 #define HEIGHT 693
@@ -11,8 +12,8 @@ static uint8_t field[2][HEIGHT][WIDTH];
 #endif
 
 #ifdef NEON
-#define NEON_HEIGHT 600
-#define NEON_WIDTH 50
+#define NEON_HEIGHT 48
+#define NEON_WIDTH 3
 #define NEON_VECTOR_SIZE 16
 static int active_field = 0;
 static uint8x16_t neon_field[2][NEON_HEIGHT][NEON_WIDTH];
@@ -56,6 +57,17 @@ static inline void debug_neon (int field_idx) {
       }
     }
     printf("\n");
+  }
+  printf("\n");
+}
+
+static inline void randomize_neon (int field_idx) {
+  for (int yy = 0; yy < NEON_HEIGHT; yy++) {
+    for (int xx = 0; xx < NEON_WIDTH; xx++) {
+      for (int xxx = 0; xxx < NEON_VECTOR_SIZE; xxx++) {
+        neon_field[field_idx][yy][xx][xxx] = rand() % 2;
+      }
+    }
   }
 }
 #endif
@@ -183,6 +195,7 @@ int main (int argc, char** argv) {
   neon_field[active_field][3][0][1] = 1;
   neon_field[active_field][3][0][2] = 1;
   neon_field[active_field][3][0][3] = 1;
+  //randomize_neon(active_field);
   #endif
 
   #ifdef BASIC
@@ -196,12 +209,18 @@ int main (int argc, char** argv) {
   for (int ii = 0; ii < 100; ii++) {
     #ifdef CONVOLVE
     step_conv();
+    debug(active_field);
+    sleep(1);
     #endif
     #ifdef NEON
     step_neon();
+    debug_neon(active_field);
+    sleep(1);
     #endif
     #ifdef BASIC
     step_basic();
+    debug(active_field);
+    sleep(1);
     #endif
   }
 
