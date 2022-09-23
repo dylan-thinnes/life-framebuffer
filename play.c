@@ -137,6 +137,9 @@ static inline void init_from_fb () {
 }
 
 int main (int argc, char **argv) {
+  int steps = -1;
+  if (argc > 1) sscanf(argv[1], "%d", &steps);
+
   int fd = open("/dev/fb0", O_RDWR);
   mem = (uint16_t (*)[buffer_width]) mmap(NULL, buffer_width * buffer_height * 2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 
@@ -148,9 +151,10 @@ int main (int argc, char **argv) {
   //buffer[0][0][2][0][1] = 1;
   //buffer[0][0][2][0][2] = 1;
 
+  redraw();
   uint64_t elapsed = 0;
   uint64_t interval = 100000000L;
-  while (1) {
+  while (steps--) {
     struct timespec start_ts, end_ts;
     timespec_get(&start_ts, TIME_UTC);
     step_state();
@@ -168,7 +172,6 @@ int main (int argc, char **argv) {
     diff = end - start;
     printf ("Write: %3.f ms\n", diff);
   }
-  redraw();
 
   munmap(mem, buffer_width * buffer_height * 2);
 }
