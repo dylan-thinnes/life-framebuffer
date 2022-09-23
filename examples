@@ -1,0 +1,5 @@
+gcc -Ofast -mfpu=neon -march=native play.c -o play
+./play
+gcc -Ofast write.c -o write
+convert parrot.jpg -sample 400% +noise gaussian -attenuate 0.5 PPM:- | ./write 0 0
+for i in `seq 300`; do cat out.ppm | ./write $i $i; done
