@@ -139,19 +139,6 @@ static inline void init_from_fb () {
 int main (int argc, char **argv) {
   int fd = open("/dev/fb0", O_RDWR);
   mem = (uint16_t (*)[buffer_width]) mmap(NULL, buffer_width * buffer_height * 2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-  /*
-  for (int xx = 0; xx < 256; xx++) {
-    for (int yy = 0; yy < 256; yy++) {
-      int x = xx + 100;
-      int y = yy + 0;
-      int rr = (xx * 10) % 256;
-      int gg = (yy * 10) % 256;
-      int bb = 0x80;
-      //int bb = (xx * yy) % 256;
-      mem[y][x] = rr << 16 | gg << 8 | bb;
-    }
-  }
-  */
 
   init_from_fb();
   //randomize();
