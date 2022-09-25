@@ -8,14 +8,14 @@
 #include <time.h>
 #include <arm_neon.h>
 
-static const int buffer_width_vec_count = 50;
-static const int buffer_width_vec_size = 16;
+static const int buffer_width_vec_count = 100;
+static const int buffer_width_vec_size = 8;
 static const int buffer_width = buffer_width_vec_count * buffer_width_vec_size;
 static const int buffer_height = 600;
-static const int multi_channel = 1;
+static const int multi_channel = 0;
 static const int channel_count = multi_channel ? 3 : 1;
 
-static uint8x16_t buffer[2][3][600][50];
+static uint16x8_t buffer[3][3][600][100];
 
 static uint16_t (*mem)[800];
 
@@ -49,11 +49,11 @@ static inline void debug () {
 static inline void step_state () {
   for (int channel = 0; channel < channel_count; channel++) {
     for (int yy = 0; yy < buffer_height; yy++) {
-      uint8x16_t prev = buffer[0][channel][yy][buffer_width_vec_count - 1];
-      uint8x16_t curr = buffer[0][channel][yy][0];
-      uint8x16_t next = buffer[0][channel][yy][1];
+      uint16x8_t prev = buffer[0][channel][yy][buffer_width_vec_count - 1];
+      uint16x8_t curr = buffer[0][channel][yy][0];
+      uint16x8_t next = buffer[0][channel][yy][1];
 
-      uint8x16_t out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, 15)));
+      uint16x8_t out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
       buffer[1][channel][yy][0] = out;
 
       for (int xx = 1; xx < buffer_width_vec_count - 1; xx++) {
@@ -61,7 +61,7 @@ static inline void step_state () {
         curr = next;
         next = buffer[0][channel][yy][xx + 1];
 
-        out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, 15)));
+        out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
         buffer[1][channel][yy][xx] = out;
       }
 
@@ -69,28 +69,28 @@ static inline void step_state () {
       curr = next;
       next = buffer[0][channel][yy][0];
 
-      out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, 15)));
+      out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
       buffer[1][channel][yy][buffer_width_vec_count - 1] = out;
     }
 
     for (int xx = 0; xx < buffer_width_vec_count; xx++) {
       for (int yy = 0; yy < buffer_height; yy++) {
-        uint8x16_t neighbours =
-          vaddq_u8
+        uint16x8_t neighbours =
+          vaddq_u16
             ( buffer[1][channel][(yy - 1) % buffer_height][xx]
-            , vaddq_u8
+            , vaddq_u16
                 ( buffer[1][channel][yy][xx]
                 , buffer[1][channel][(yy + 1) % buffer_height][xx]
                 )
             );
-        uint8x16_t alive = buffer[0][channel][yy][xx];
-        const uint8_t three_const = 3;
-        const uint8_t four_const = 4;
-        const uint8_t one_const = 1;
-        uint8x16_t three = vld1q_dup_u8(&three_const);
-        uint8x16_t four = vld1q_dup_u8(&four_const);
-        uint8x16_t one = vld1q_dup_u8(&one_const);
-        uint8x16_t out = vandq_u8(one, vorrq_u8(vceqq_u8(neighbours, three), vandq_u8(vceqq_u8(neighbours, four), alive)));
+        uint16x8_t alive = buffer[0][channel][yy][xx];
+        const uint16_t three_const = 3;
+        const uint16_t four_const = 4;
+        const uint16_t one_const = 1;
+        uint16x8_t three = vld1q_dup_u16(&three_const);
+        uint16x8_t four = vld1q_dup_u16(&four_const);
+        uint16x8_t one = vld1q_dup_u16(&one_const);
+        uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
         buffer[0][channel][yy][xx] = out;
       }
     }
