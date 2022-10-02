@@ -12,8 +12,8 @@ static const int buffer_width_vec_count = 100;
 static const int buffer_width_vec_size = 8;
 static const int buffer_width = buffer_width_vec_count * buffer_width_vec_size;
 static const int buffer_height = 600;
-static const int multi_channel = 0;
-static const int channel_count = multi_channel ? 3 : 1;
+static const int multi_channel = 1;
+static const int channel_count = 3;
 
 static uint16x8_t buffer[3][3][600][100];
 
@@ -102,14 +102,10 @@ static inline void redraw () {
     for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
       for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
         int xx = xx_outer * buffer_width_vec_size + xx_inner;
-        if (multi_channel) {
-          mem[yy][xx] =
-            (buffer[0][0][yy][xx_outer][xx_inner] ? 0xF800 : 0x0000) |
-            (buffer[0][1][yy][xx_outer][xx_inner] ? 0x07E0 : 0x0000) |
-            (buffer[0][2][yy][xx_outer][xx_inner] ? 0x001F : 0x0000);
-        } else {
-          mem[yy][xx] = buffer[0][0][yy][xx_outer][xx_inner] ? 0xffff : 0x0000;
-        }
+        mem[yy][xx] =
+          (buffer[0][0][yy][xx_outer][xx_inner] ? 0xF800 : 0x0000) |
+          (buffer[0][1][yy][xx_outer][xx_inner] ? 0x07E0 : 0x0000) |
+          (buffer[0][2][yy][xx_outer][xx_inner] ? 0x001F : 0x0000);
       }
     }
   }
