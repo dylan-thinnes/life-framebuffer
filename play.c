@@ -12,34 +12,27 @@ static const int buffer_width_vec_count = 100;
 static const int buffer_width_vec_size = 8;
 static const int buffer_width = buffer_width_vec_count * buffer_width_vec_size;
 static const int buffer_height = 600;
-static const int multi_channel = 1;
-static const int channel_count = 3;
 
-static uint16x8_t buffer[3][3][600][100];
+static uint16x8_t buffer[3][600][100];
 
 static uint16_t (*mem)[800];
 
 static inline void randomize () {
-  for (int channel = 0; channel < channel_count; channel++) {
-    for (int yy = 0; yy < buffer_height; yy++) {
-      for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
-        for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
-          buffer[0][channel][yy][xx_outer][xx_inner] = rand() % 2;
-        }
+  for (int yy = 0; yy < buffer_height; yy++) {
+    for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
+      for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
+        buffer[0][yy][xx_outer][xx_inner] = rand() % 2;
       }
     }
   }
 }
 
 static inline void debug () {
-  for (int channel = 0; channel < channel_count; channel++) {
-    for (int yy = 0; yy < buffer_height; yy++) {
-      for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
-        for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
-          printf("%d", buffer[0][channel][yy][xx_outer][xx_inner]);
-        }
+  for (int yy = 0; yy < buffer_height; yy++) {
+    for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
+      for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
+        printf("%d", buffer[0][yy][xx_outer][xx_inner]);
       }
-      printf("\n");
     }
     printf("\n");
   }
@@ -47,52 +40,50 @@ static inline void debug () {
 }
 
 static inline void step_state () {
-  for (int channel = 0; channel < channel_count; channel++) {
-    for (int yy = 0; yy < buffer_height; yy++) {
-      uint16x8_t prev = buffer[0][channel][yy][buffer_width_vec_count - 1];
-      uint16x8_t curr = buffer[0][channel][yy][0];
-      uint16x8_t next = buffer[0][channel][yy][1];
+  for (int yy = 0; yy < buffer_height; yy++) {
+    uint16x8_t prev = buffer[0][yy][buffer_width_vec_count - 1];
+    uint16x8_t curr = buffer[0][yy][0];
+    uint16x8_t next = buffer[0][yy][1];
 
-      uint16x8_t out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
-      buffer[1][channel][yy][0] = out;
+    uint16x8_t out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
+    buffer[1][yy][0] = out;
 
-      for (int xx = 1; xx < buffer_width_vec_count - 1; xx++) {
-        prev = curr;
-        curr = next;
-        next = buffer[0][channel][yy][xx + 1];
-
-        out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
-        buffer[1][channel][yy][xx] = out;
-      }
-
+    for (int xx = 1; xx < buffer_width_vec_count - 1; xx++) {
       prev = curr;
       curr = next;
-      next = buffer[0][channel][yy][0];
+      next = buffer[0][yy][xx + 1];
 
       out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
-      buffer[1][channel][yy][buffer_width_vec_count - 1] = out;
+      buffer[1][yy][xx] = out;
     }
 
-    for (int xx = 0; xx < buffer_width_vec_count; xx++) {
-      for (int yy = 0; yy < buffer_height; yy++) {
-        uint16x8_t neighbours =
-          vaddq_u16
-            ( buffer[1][channel][(yy - 1) % buffer_height][xx]
-            , vaddq_u16
-                ( buffer[1][channel][yy][xx]
-                , buffer[1][channel][(yy + 1) % buffer_height][xx]
-                )
-            );
-        uint16x8_t alive = buffer[0][channel][yy][xx];
-        const uint16_t three_const = 3;
-        const uint16_t four_const = 4;
-        const uint16_t one_const = 1;
-        uint16x8_t three = vld1q_dup_u16(&three_const);
-        uint16x8_t four = vld1q_dup_u16(&four_const);
-        uint16x8_t one = vld1q_dup_u16(&one_const);
-        uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
-        buffer[0][channel][yy][xx] = out;
-      }
+    prev = curr;
+    curr = next;
+    next = buffer[0][yy][0];
+
+    out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
+    buffer[1][yy][buffer_width_vec_count - 1] = out;
+  }
+
+  for (int xx = 0; xx < buffer_width_vec_count; xx++) {
+    for (int yy = 0; yy < buffer_height; yy++) {
+      uint16x8_t neighbours =
+        vaddq_u16
+          ( buffer[1][(yy - 1) % buffer_height][xx]
+          , vaddq_u16
+              ( buffer[1][yy][xx]
+              , buffer[1][(yy + 1) % buffer_height][xx]
+              )
+          );
+      uint16x8_t alive = buffer[0][yy][xx];
+      const uint16_t three_const = 3;
+      const uint16_t four_const = 4;
+      const uint16_t one_const = 1;
+      uint16x8_t three = vld1q_dup_u16(&three_const);
+      uint16x8_t four = vld1q_dup_u16(&four_const);
+      uint16x8_t one = vld1q_dup_u16(&one_const);
+      uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+      buffer[0][yy][xx] = out;
     }
   }
 }
@@ -102,10 +93,7 @@ static inline void redraw () {
     for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
       for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
         int xx = xx_outer * buffer_width_vec_size + xx_inner;
-        mem[yy][xx] =
-          (buffer[0][0][yy][xx_outer][xx_inner] ? 0xF800 : 0x0000) |
-          (buffer[0][1][yy][xx_outer][xx_inner] ? 0x07E0 : 0x0000) |
-          (buffer[0][2][yy][xx_outer][xx_inner] ? 0x001F : 0x0000);
+        mem[yy][xx] = buffer[0][yy][xx_outer][xx_inner] ? 0xFFFF : 0x0000;
       }
     }
   }
@@ -117,16 +105,7 @@ static inline void init_from_fb () {
       for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
         int xx = xx_outer * buffer_width_vec_size + xx_inner;
         uint16_t val = mem[yy][xx];
-        uint16_t r = (val >> 11) & 0x1f;
-        uint16_t g = (val >>  5) & 0x3f;
-        uint16_t b = (val >>  0) & 0x1f;
-        if (multi_channel) {
-          buffer[0][0][yy][xx_outer][xx_inner] = r > 16;
-          buffer[0][1][yy][xx_outer][xx_inner] = g > 32;
-          buffer[0][2][yy][xx_outer][xx_inner] = b > 16;
-        } else {
-          buffer[0][0][yy][xx_outer][xx_inner] = r > 2 || g > 2 || b > 2;
-        }
+        buffer[0][yy][xx_outer][xx_inner] = val > 0x8000;
       }
     }
   }
@@ -141,11 +120,11 @@ int main (int argc, char **argv) {
 
   init_from_fb();
   //randomize();
-  //buffer[0][0][0][0][1] = 1;
-  //buffer[0][0][1][0][2] = 1;
-  //buffer[0][0][2][0][0] = 1;
-  //buffer[0][0][2][0][1] = 1;
-  //buffer[0][0][2][0][2] = 1;
+  //buffer[0][0][0][1] = 1;
+  //buffer[0][1][0][2] = 1;
+  //buffer[0][2][0][0] = 1;
+  //buffer[0][2][0][1] = 1;
+  //buffer[0][2][0][2] = 1;
 
   redraw();
   uint64_t elapsed = 0;
