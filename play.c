@@ -8,14 +8,24 @@
 #include <time.h>
 #include <arm_neon.h>
 
-static const int buffer_width_vec_count = 100;
+#ifndef BUFFER_HEIGHT
+  #define BUFFER_HEIGHT 600
+#endif
+
+#ifndef BUFFER_WIDTH
+  #define BUFFER_WIDTH 800
+#endif
+
+static const int buffer_width_vec_count = BUFFER_WIDTH / 8;
 static const int buffer_width_vec_size = 8;
 static const int buffer_width = buffer_width_vec_count * buffer_width_vec_size;
-static const int buffer_height = 600;
+static const int buffer_height = BUFFER_HEIGHT;
 
-static uint16x8_t buffer[3][600][100];
+static uint16x8_t buffer[3][BUFFER_HEIGHT][BUFFER_WIDTH / 8];
 
+#ifndef NO_WRITE
 static uint16_t (*mem)[800];
+#endif
 
 static inline void randomize () {
   for (int yy = 0; yy < buffer_height; yy++) {
@@ -88,6 +98,7 @@ static inline void step_state () {
   }
 }
 
+#ifndef NO_WRITE
 static inline void redraw () {
   for (int yy = 0; yy < buffer_height; yy++) {
     for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
@@ -110,23 +121,28 @@ static inline void init_from_fb () {
     }
   }
 }
+#endif
 
 int main (int argc, char **argv) {
   int steps = -1;
   if (argc > 1) sscanf(argv[1], "%d", &steps);
 
+#ifndef NO_WRITE
   int fd = open("/dev/fb0", O_RDWR);
   mem = (uint16_t (*)[buffer_width]) mmap(NULL, buffer_width * buffer_height * 2, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+#endif
 
-  init_from_fb();
-  //randomize();
+  //init_from_fb();
+  randomize();
   //buffer[0][0][0][1] = 1;
   //buffer[0][1][0][2] = 1;
   //buffer[0][2][0][0] = 1;
   //buffer[0][2][0][1] = 1;
   //buffer[0][2][0][2] = 1;
 
+#ifndef NO_WRITE
   redraw();
+#endif
   uint64_t elapsed = 0;
   uint64_t interval = 100000000L;
   while (steps--) {
@@ -139,6 +155,7 @@ int main (int argc, char **argv) {
     double diff = end - start;
     printf ("Calc:  %3.f ms\n", diff);
 
+#ifndef NO_WRITE
     timespec_get(&start_ts, TIME_UTC);
     redraw();
     timespec_get(&end_ts, TIME_UTC);
@@ -146,7 +163,10 @@ int main (int argc, char **argv) {
     end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
     diff = end - start;
     printf ("Write: %3.f ms\n", diff);
+#endif
   }
 
+#ifndef NO_WRITE
   munmap(mem, buffer_width * buffer_height * 2);
+#endif
 }
