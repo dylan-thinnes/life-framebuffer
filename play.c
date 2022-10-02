@@ -163,7 +163,6 @@ void* run_thread (void* vargs) {
 #endif
   }
 
-  printf("Done!\n");
   return NULL;
 }
 
@@ -199,7 +198,6 @@ int main (int argc, char **argv) {
   pthread_create(&t[1], NULL, &run_thread, (void*) &t_args[4]);
   pthread_create(&t[2], NULL, &run_thread, (void*) &t_args[8]);
   run_thread((void*) &t_args[12]);
-  printf("Done!\n");
   pthread_join(t[0], NULL);
   pthread_join(t[1], NULL);
   pthread_join(t[2], NULL);
