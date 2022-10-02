@@ -9,7 +9,7 @@
 #include <arm_neon.h>
 #include <pthread.h>
 
-#define THREAD_NUMS 3
+#define THREAD_NUMS 4
 pthread_barrier_t barrier;
 
 #ifndef BUFFER_HEIGHT
@@ -121,8 +121,8 @@ static inline void step_state_2 (int y_start, int y_end) {
 }
 
 #ifndef NO_WRITE
-static inline void redraw () {
-  for (int yy = 0; yy < buffer_height; yy++) {
+static inline void redraw (int y_start, int y_end) {
+  for (int yy = y_start; yy < y_end; yy++) {
     for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
       for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
         int xx = xx_outer * buffer_width_vec_size + xx_inner;
@@ -153,28 +153,22 @@ void* run_thread (void* vargs) {
   int is_first = (int) args[3];
   int i = n;
   while (i--) {
-    struct timespec start_ts, end_ts;
-    if (is_first) {
-      timespec_get(&start_ts, TIME_UTC);
-    }
     pthread_barrier_wait(&barrier);
     step_state_1(start_y, end_y);
     pthread_barrier_wait(&barrier);
     step_state_2(start_y, end_y);
 
-    if (is_first) {
-      timespec_get(&end_ts, TIME_UTC);
-      double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-      double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-      double diff = end - start;
-      printf ("Calc:  %3.f ms\n", diff);
-    }
+#ifndef NO_WRITE
+    redraw(start_y, end_y);
+#endif
   }
+
+  printf("Done!\n");
   return NULL;
 }
 
 int main (int argc, char **argv) {
-  pthread_barrier_init(&barrier, NULL, THREAD_NUMS + 1);
+  pthread_barrier_init(&barrier, NULL, THREAD_NUMS);
 
   int steps = -1;
   if (argc > 1) sscanf(argv[1], "%d", &steps);
@@ -191,46 +185,24 @@ int main (int argc, char **argv) {
   //buffer[0][3 - 2][0][2] = 1;
 
 #ifndef NO_WRITE
-  redraw();
+  redraw(0, buffer_height);
 #endif
 
-  //int t_args[6] = { steps, 0, buffer_height / 2, steps, buffer_height / 2, buffer_height };
-  int t_args[12] = {
-    steps, 0, buffer_height / 3, 1,
-    steps, buffer_height / 3, buffer_height * 2 / 3, 0,
-    steps, buffer_height * 2 / 3, buffer_height, 0
+  int t_args[16] = {
+    steps, 0, buffer_height / 4, 1,
+    steps, buffer_height / 4, buffer_height * 2 / 4, 0,
+    steps, buffer_height * 2 / 4, buffer_height * 3 / 4, 0,
+    steps, buffer_height * 3 / 4, buffer_height, 0
   };
   pthread_t t[THREAD_NUMS];
   pthread_create(&t[0], NULL, &run_thread, (void*) &t_args[0]);
   pthread_create(&t[1], NULL, &run_thread, (void*) &t_args[4]);
   pthread_create(&t[2], NULL, &run_thread, (void*) &t_args[8]);
-
-  uint64_t elapsed = 0;
-  uint64_t interval = 100000000L;
-  while (steps--) {
-    struct timespec start_ts, end_ts;
-    //timespec_get(&start_ts, TIME_UTC);
-    //step_state_1(0, buffer_height);
-    //step_state_1(buffer_height / 2, buffer_height);
-    //step_state_2(0, buffer_height);
-    //step_state_2(buffer_height / 2, buffer_height);
-    //timespec_get(&end_ts, TIME_UTC);
-    //double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-    //double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-    //double diff = end - start;
-    //printf ("Calc:  %3.f ms\n", diff);
-
-    pthread_barrier_wait(&barrier);
-#ifndef NO_WRITE
-    timespec_get(&start_ts, TIME_UTC);
-    redraw();
-    timespec_get(&end_ts, TIME_UTC);
-    double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
-    double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
-    double diff = end - start;
-    printf ("Write: %3.f ms\n", diff);
-#endif
-  }
+  run_thread((void*) &t_args[12]);
+  printf("Done!\n");
+  pthread_join(t[0], NULL);
+  pthread_join(t[1], NULL);
+  pthread_join(t[2], NULL);
 
   munmap(mem, buffer_width * buffer_height * 2);
 }
