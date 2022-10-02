@@ -20,12 +20,12 @@ pthread_barrier_t barrier;
   #define BUFFER_WIDTH 800
 #endif
 
-static const int buffer_width_vec_count = BUFFER_WIDTH / 8;
-static const int buffer_width_vec_size = 8;
+static const int buffer_width_vec_size = 16;
+static const int buffer_width_vec_count = BUFFER_WIDTH / 16;
 static const int buffer_width = buffer_width_vec_count * buffer_width_vec_size;
 static const int buffer_height = BUFFER_HEIGHT;
 
-static uint16x8_t buffer[3][BUFFER_HEIGHT][BUFFER_WIDTH / 8];
+static uint8x16_t buffer[3][BUFFER_HEIGHT][BUFFER_WIDTH / 16];
 
 static uint16_t (*mem)[800];
 
@@ -53,11 +53,11 @@ static inline void debug (int buffer_idx) {
 
 static inline void step_state_1 (int y_start, int y_end) {
   for (int yy = y_start; yy < y_end; yy++) {
-    uint16x8_t prev = buffer[0][yy][buffer_width_vec_count - 1];
-    uint16x8_t curr = buffer[0][yy][0];
-    uint16x8_t next = buffer[0][yy][1];
+    uint8x16_t prev = buffer[0][yy][buffer_width_vec_count - 1];
+    uint8x16_t curr = buffer[0][yy][0];
+    uint8x16_t next = buffer[0][yy][1];
 
-    uint16x8_t out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
+    uint8x16_t out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, buffer_width_vec_size - 1)));
     buffer[1][yy][0] = out;
 
     for (int xx = 1; xx < buffer_width_vec_count - 1; xx++) {
@@ -65,7 +65,7 @@ static inline void step_state_1 (int y_start, int y_end) {
       curr = next;
       next = buffer[0][yy][xx + 1];
 
-      out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
+      out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, buffer_width_vec_size - 1)));
       buffer[1][yy][xx] = out;
     }
 
@@ -73,38 +73,38 @@ static inline void step_state_1 (int y_start, int y_end) {
     curr = next;
     next = buffer[0][yy][0];
 
-    out = vaddq_u16(curr, vaddq_u16(vextq_u16(curr, next, 1), vextq_u16(prev, curr, buffer_width_vec_size - 1)));
+    out = vaddq_u8(curr, vaddq_u8(vextq_u8(curr, next, 1), vextq_u8(prev, curr, buffer_width_vec_size - 1)));
     buffer[1][yy][buffer_width_vec_count - 1] = out;
   }
 }
 
 static inline void step_state_2 (int y_start, int y_end) {
-  const uint16_t three_const = 3;
-  const uint16_t four_const = 4;
-  const uint16_t one_const = 1;
-  uint16x8_t three = vld1q_dup_u16(&three_const);
-  uint16x8_t four = vld1q_dup_u16(&four_const);
-  uint16x8_t one = vld1q_dup_u16(&one_const);
+  const uint8_t three_const = 3;
+  const uint8_t four_const = 4;
+  const uint8_t one_const = 1;
+  uint8x16_t three = vld1q_dup_u8(&three_const);
+  uint8x16_t four = vld1q_dup_u8(&four_const);
+  uint8x16_t one = vld1q_dup_u8(&one_const);
 
   for (int xx = 0; xx < buffer_width_vec_count; xx++) {
-    uint16x8_t prev = buffer[1][y_start == 0 ? buffer_height - 1 : y_start - 1][xx];
-    uint16x8_t curr = buffer[1][y_start][xx];
-    uint16x8_t next = buffer[1][y_start + 1][xx];
+    uint8x16_t prev = buffer[1][y_start == 0 ? buffer_height - 1 : y_start - 1][xx];
+    uint8x16_t curr = buffer[1][y_start][xx];
+    uint8x16_t next = buffer[1][y_start + 1][xx];
 
-    uint16x8_t neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
-    uint16x8_t alive = buffer[0][y_start][xx];
-    uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
-    uint16x8_t start_out = out;
+    uint8x16_t neighbours = vaddq_u8(prev, vaddq_u8(curr, next));
+    uint8x16_t alive = buffer[0][y_start][xx];
+    uint8x16_t out = vandq_u8(one, vorrq_u8(vceqq_u8(neighbours, three), vandq_u8(vceqq_u8(neighbours, four), alive)));
+    uint8x16_t start_out = out;
 
     for (int yy = y_start + 1; yy < y_end - 1; yy++) {
       prev = curr;
       curr = next;
       next = buffer[1][yy + 1][xx];
 
-      neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
+      neighbours = vaddq_u8(prev, vaddq_u8(curr, next));
 
       alive = buffer[0][yy][xx];
-      out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+      out = vandq_u8(one, vorrq_u8(vceqq_u8(neighbours, three), vandq_u8(vceqq_u8(neighbours, four), alive)));
       buffer[0][yy][xx] = out;
     }
 
@@ -112,9 +112,9 @@ static inline void step_state_2 (int y_start, int y_end) {
     curr = next;
     next = buffer[1][y_end == buffer_height ? 0 : y_end][xx];
 
-    neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
+    neighbours = vaddq_u8(prev, vaddq_u8(curr, next));
     alive = buffer[0][y_end - 1][xx];
-    out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+    out = vandq_u8(one, vorrq_u8(vceqq_u8(neighbours, three), vandq_u8(vceqq_u8(neighbours, four), alive)));
     buffer[0][y_end - 1][xx] = out;
     buffer[0][y_start][xx] = start_out;
   }
