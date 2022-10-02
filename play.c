@@ -75,26 +75,42 @@ static inline void step_state () {
     buffer[1][yy][buffer_width_vec_count - 1] = out;
   }
 
+  const uint16_t three_const = 3;
+  const uint16_t four_const = 4;
+  const uint16_t one_const = 1;
+  uint16x8_t three = vld1q_dup_u16(&three_const);
+  uint16x8_t four = vld1q_dup_u16(&four_const);
+  uint16x8_t one = vld1q_dup_u16(&one_const);
+
   for (int xx = 0; xx < buffer_width_vec_count; xx++) {
-    for (int yy = 0; yy < buffer_height; yy++) {
-      uint16x8_t neighbours =
-        vaddq_u16
-          ( buffer[1][(yy - 1) % buffer_height][xx]
-          , vaddq_u16
-              ( buffer[1][yy][xx]
-              , buffer[1][(yy + 1) % buffer_height][xx]
-              )
-          );
-      uint16x8_t alive = buffer[0][yy][xx];
-      const uint16_t three_const = 3;
-      const uint16_t four_const = 4;
-      const uint16_t one_const = 1;
-      uint16x8_t three = vld1q_dup_u16(&three_const);
-      uint16x8_t four = vld1q_dup_u16(&four_const);
-      uint16x8_t one = vld1q_dup_u16(&one_const);
-      uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+    uint16x8_t prev = buffer[1][buffer_height - 1][xx];
+    uint16x8_t curr = buffer[1][0][xx];
+    uint16x8_t next = buffer[1][1][xx];
+
+    uint16x8_t neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
+    uint16x8_t alive = buffer[0][0][xx];
+    uint16x8_t out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+    buffer[0][0][xx] = out;
+
+    for (int yy = 1; yy < buffer_height - 1; yy++) {
+      prev = curr;
+      curr = next;
+      next = buffer[1][yy + 1][xx];
+
+      neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
+      alive = buffer[0][yy][xx];
+      out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
       buffer[0][yy][xx] = out;
     }
+
+    prev = curr;
+    curr = next;
+    next = buffer[1][0][xx];
+
+    neighbours = vaddq_u16(prev, vaddq_u16(curr, next));
+    alive = buffer[0][buffer_height - 1][xx];
+    out = vandq_u16(one, vorrq_u16(vceqq_u16(neighbours, three), vandq_u16(vceqq_u16(neighbours, four), alive)));
+    buffer[0][buffer_height - 1][xx] = out;
   }
 }
 
