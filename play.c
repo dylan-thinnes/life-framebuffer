@@ -126,7 +126,7 @@ static inline void redraw (int y_start, int y_end) {
     for (int xx_outer = 0; xx_outer < buffer_width_vec_count; xx_outer++) {
       for (int xx_inner = 0; xx_inner < buffer_width_vec_size; xx_inner++) {
         int xx = xx_outer * buffer_width_vec_size + xx_inner;
-        mem[yy][xx] = buffer[0][yy][xx_outer][xx_inner] ? 0xFFFF : 0x0000;
+        mem[yy][xx] = buffer[0][yy][xx_outer][xx_inner] ? 0xFC00 : 0x0000;
       }
     }
   }
@@ -153,16 +153,46 @@ void* run_thread (void* vargs) {
   int is_first = (int) args[3];
   int i = n;
   while (i--) {
+#ifdef TIMING
+    struct timespec start_ts, end_ts;
+    if (is_first) {
+      timespec_get(&start_ts, TIME_UTC);
+    }
+#endif
     pthread_barrier_wait(&barrier);
     step_state_1(start_y, end_y);
     pthread_barrier_wait(&barrier);
     step_state_2(start_y, end_y);
 
+#ifdef TIMING
+    if (is_first) {
+      timespec_get(&end_ts, TIME_UTC);
+      double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+      double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+      double diff = end - start;
+      printf ("Calc:  %3.f ms\n", diff);
+      timespec_get(&start_ts, TIME_UTC);
+    }
+#endif
+
 #ifndef NO_WRITE
     redraw(start_y, end_y);
 #endif
+
+#ifdef TIMING
+    if (is_first) {
+      timespec_get(&end_ts, TIME_UTC);
+      double start = (double) start_ts.tv_sec * 1000 + (double) start_ts.tv_nsec / 1000000.0f;
+      double end = (double) end_ts.tv_sec * 1000 + (double) end_ts.tv_nsec / 1000000.0f;
+      double diff = end - start;
+      printf ("Write: %3.f ms\n", diff);
+    }
+#endif
   }
 
+#ifdef TIMING
+  printf("Done!\n");
+#endif
   return NULL;
 }
 
