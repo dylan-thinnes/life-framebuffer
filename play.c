@@ -9,7 +9,7 @@
 #include <arm_neon.h>
 #include <pthread.h>
 
-#define THREAD_NUMS 4
+#define THREAD_COUNT 4
 pthread_barrier_t barrier;
 
 #ifndef BUFFER_HEIGHT
@@ -197,7 +197,7 @@ void* run_thread (void* vargs) {
 }
 
 int main (int argc, char **argv) {
-  pthread_barrier_init(&barrier, NULL, THREAD_NUMS);
+  pthread_barrier_init(&barrier, NULL, THREAD_COUNT);
 
   int steps = -1;
   if (argc > 1) sscanf(argv[1], "%d", &steps);
@@ -217,20 +217,24 @@ int main (int argc, char **argv) {
   redraw(0, buffer_height);
 #endif
 
-  int t_args[16] = {
-    steps, 0, buffer_height / 4, 1,
-    steps, buffer_height / 4, buffer_height * 2 / 4, 0,
-    steps, buffer_height * 2 / 4, buffer_height * 3 / 4, 0,
-    steps, buffer_height * 3 / 4, buffer_height, 0
-  };
-  pthread_t t[THREAD_NUMS];
-  pthread_create(&t[0], NULL, &run_thread, (void*) &t_args[0]);
-  pthread_create(&t[1], NULL, &run_thread, (void*) &t_args[4]);
-  pthread_create(&t[2], NULL, &run_thread, (void*) &t_args[8]);
-  run_thread((void*) &t_args[12]);
-  pthread_join(t[0], NULL);
-  pthread_join(t[1], NULL);
-  pthread_join(t[2], NULL);
+  pthread_t t[THREAD_COUNT];
+  int t_args[THREAD_COUNT * 4];
+  for (int thread_id = 0; thread_id < THREAD_COUNT; thread_id++) {
+    t_args[thread_id * 4 + 0] = steps;
+    t_args[thread_id * 4 + 1] = thread_id * buffer_height / THREAD_COUNT;
+    t_args[thread_id * 4 + 2] = (thread_id + 1) * buffer_height / THREAD_COUNT;
+    t_args[thread_id * 4 + 3] = thread_id == 0;
+
+    if (thread_id == THREAD_COUNT - 1) {
+      run_thread((void*) &t_args[thread_id * 4]);
+    } else {
+      pthread_create(&t[thread_id], NULL, &run_thread, (void*) &t_args[thread_id * 4]);
+    }
+  }
+
+  for (int thread_id = 0; thread_id < THREAD_COUNT - 1; thread_id++) {
+    pthread_join(t[thread_id], NULL);
+  }
 
   munmap(mem, buffer_width * buffer_height * 2);
 }
