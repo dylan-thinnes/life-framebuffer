@@ -140,7 +140,7 @@ static inline void redraw (int y_start, int y_end) {
         mem[yy][xx] =
             (buffer[0][0][yy][xx_outer][xx_inner] ? 0xF800 : 0x0000)
           | (buffer[0][1][yy][xx_outer][xx_inner] ? 0x07E0 : 0x0000)
-          | (buffer[0][2][yy][xx_outer][xx_inner] ? 0x008F : 0x0000);
+          | (buffer[0][2][yy][xx_outer][xx_inner] ? 0x001F : 0x0000);
       }
     }
   }
