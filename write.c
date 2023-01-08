@@ -31,7 +31,7 @@ int main (int argc, char** argv) {
       int g = getc(stdin);
       int b = getc(stdin);
       int bits = (r >> 3) << 11 | (g >> 2) << 5 | b >> 3;
-      mem[offset_y + yy][offset_x + xx] = bits;
+      mem[offset_y + yy][offset_x + xx] |= bits;
     }
   }
 
