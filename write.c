@@ -7,9 +7,12 @@
 #include <stdint.h>
 #include <time.h>
 
-static const int buffer_width = 800;
-static const int buffer_height = 600;
-static uint16_t (*mem)[800];
+#define BUFFER_WIDTH 1920
+#define BUFFER_HEIGHT 1080
+
+static const int buffer_width = BUFFER_WIDTH;
+static const int buffer_height = BUFFER_HEIGHT;
+static uint16_t (*mem)[BUFFER_WIDTH];
 
 int main (int argc, char** argv) {
   int offset_x, offset_y;
