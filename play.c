@@ -13,11 +13,11 @@
 pthread_barrier_t barrier;
 
 #ifndef BUFFER_HEIGHT
-  #define BUFFER_HEIGHT 600
+  #define BUFFER_HEIGHT 1080
 #endif
 
 #ifndef BUFFER_WIDTH
-  #define BUFFER_WIDTH 800
+  #define BUFFER_WIDTH 1920
 #endif
 
 static const int buffer_width_vec_size = 16;
