@@ -17,9 +17,15 @@ int main () {
     exit(1);
   }
 
-  printf("P1\n%d %d\n", width, height);
+  fprintf(stderr, "Got x = %d and y = %d\n", width, height);
+
+  int ignore_from = 100;
+  int ignore_until = 100;
+
+  printf("P1\n%d %d\n", width - (ignore_until - ignore_from), height);
 
   int emitted_count = 0;
+  int range_start, range_end;
 
   while (1) {
     int count = 1;
@@ -32,21 +38,30 @@ int main () {
       case '\n':
         break;
       case 'b':
-	emitted_count += count;
-        for (int i = 0; i < count; i++) {
+        range_start = emitted_count;
+        emitted_count += count;
+        range_end = emitted_count;
+        for (int i = range_start; i < range_end; i++) {
+          if (ignore_from <= i && i < ignore_until) continue;
           printf("1");
         }
         break;
       case 'o':
-	emitted_count += count;
-        for (int i = 0; i < count; i++) {
+        range_start = emitted_count;
+        emitted_count += count;
+        range_end = emitted_count;
+        for (int i = range_start; i < range_end; i++) {
+          if (ignore_from <= i && i < ignore_until) continue;
           printf("0");
         }
         break;
       case '$':
       case '!':
-	for (int j = 0; j < count; j++) {
-          for (int i = 0; i < width - emitted_count; i++) {
+        for (int j = 0; j < count; j++) {
+          range_start = emitted_count;
+          range_end = width;
+          for (int i = range_start; i < range_end; i++) {
+            if (ignore_from <= i && i < ignore_until) continue;
             printf("1");
           }
           printf("\n");
