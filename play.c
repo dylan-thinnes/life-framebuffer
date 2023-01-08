@@ -27,7 +27,7 @@ static const int buffer_height = BUFFER_HEIGHT;
 
 static uint8x16_t buffer[3][3][BUFFER_HEIGHT][BUFFER_WIDTH / 16];
 
-static uint16_t (*mem)[800];
+static uint16_t (*mem)[BUFFER_WIDTH];
 
 static inline void randomize () {
   for (int channel = 0; channel < 3; channel++) {
